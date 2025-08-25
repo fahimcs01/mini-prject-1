@@ -1,0 +1,221 @@
+import json
+import boto3
+
+s3 = boto3.client('s3')
+BUCKET_NAME = "mini-pro-dev"
+
+def lambda_handler(event, context):
+    response = s3.list_objects_v2(Bucket=BUCKET_NAME)
+    files = [obj['Key'] for obj in response.get('Contents', [])]
+
+    images, videos, audios, others = [], [], [], []
+
+    for file in files:
+        if file.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
+            images.append(file)
+        elif file.lower().endswith(('.mp4', '.webm', '.avi', '.mov')):
+            videos.append(file)
+        elif file.lower().endswith(('.mp3', '.wav', '.ogg')):
+            audios.append(file)
+        else:
+            others.append(file)
+
+    html_content = """
+    <html>
+    <head>
+        <title>🎮 Neon Gaming World</title>
+        <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+        <style>
+            body {
+                margin: 0;
+                font-family: 'Press Start 2P', cursive;
+                background: radial-gradient(circle at top, #0d0d0d, #000000);
+                color: #fff;
+            }
+            header {
+                text-align: center;
+                padding: 25px;
+                font-size: 26px;
+                background: linear-gradient(90deg, #ff0080, #7928ca, #00ffff);
+                box-shadow: 0 0 25px rgba(0,255,255,0.5);
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                color: #fff;
+            }
+
+            /* Banner */
+            .banner {
+                position: relative;
+                text-align: center;
+                margin-bottom: 40px;
+                overflow: hidden;
+            }
+            .banner img {
+                width: 100%;
+                max-height: 300px;
+                object-fit: cover;
+                filter: brightness(0.5);
+            }
+            .banner h1 {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 3.5em;
+                color: #00ffff;
+                text-shadow: 0 0 20px #00ffff, 0 0 30px #ff00ff;
+                animation: glow 2s infinite alternate;
+            }
+
+            @keyframes glow {
+                from { text-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff; }
+                to { text-shadow: 0 0 30px #ff00ff, 0 0 60px #00ffff; }
+            }
+
+            h2 {
+                font-size: 1.5em;
+                color: #00ffff;
+                margin-left: 20px;
+                border-left: 5px solid #ff00ff;
+                padding-left: 10px;
+                margin-top: 50px;
+            }
+
+            .gallery {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 20px;
+                padding: 20px;
+            }
+
+            .card {
+                background: linear-gradient(145deg, #111, #1a1a1a);
+                border-radius: 20px;
+                overflow: hidden;
+                transition: transform 0.3s, box-shadow 0.3s;
+                display: flex;
+                flex-direction: column;
+                border: 2px solid transparent;
+                cursor: pointer;
+            }
+            .card:hover {
+                transform: translateY(-10px) scale(1.05);
+                box-shadow: 0 0 25px #00ffff, 0 0 40px #ff00ff;
+                border: 2px solid #00ffff;
+            }
+
+            .card img, .card video {
+                flex: 1;
+                width: 100%;
+                height: 180px;
+                object-fit: cover;
+            }
+
+            .card p {
+                text-align: center;
+                margin: 0;
+                padding: 10px;
+                background: rgba(0,0,0,0.8);
+                font-size: 0.7em;
+                color: #00ffff;
+            }
+
+            .audio-section {
+                text-align: center;
+                margin: 40px 0;
+            }
+
+            button {
+                background: linear-gradient(90deg, #ff0080, #7928ca, #00ffff);
+                border: none;
+                padding: 12px 25px;
+                margin: 10px;
+                border-radius: 12px;
+                cursor: pointer;
+                font-family: 'Press Start 2P', cursive;
+                font-size: 0.8em;
+                color: #fff;
+                transition: 0.3s;
+                box-shadow: 0 0 15px #ff00ff;
+            }
+            button:hover {
+                transform: scale(1.1);
+                box-shadow: 0 0 30px #00ffff, 0 0 50px #ff00ff;
+            }
+
+            a.file-link {
+                color: #00ffff;
+                text-decoration: none;
+                font-weight: bold;
+                font-size: 0.9em;
+            }
+            a.file-link:hover {
+                text-decoration: underline;
+                color: #ff00ff;
+            }
+
+            footer {
+                text-align: center;
+                padding: 20px;
+                background: linear-gradient(90deg, #7928ca, #ff0080, #00ffff);
+                margin-top: 50px;
+                font-size: 0.7em;
+                letter-spacing: 1px;
+                color: #fff;
+                box-shadow: 0 -5px 20px rgba(0,255,255,0.3);
+            }
+
+            @media (max-width: 768px) {
+                .card { height: auto; }
+                .banner h1 { font-size: 2em; }
+            }
+        </style>
+    </head>
+    <body>
+        <header>🚀 Neon Gaming World</header>
+        <div class="banner">
+            <img src="https://i.ibb.co/6m7t7LF/game-banner.jpg" alt="Game Banner">
+            <h1>Epic Adventure</h1>
+        </div>
+    """
+
+    # Images
+    if images:
+        html_content += "<h2>🖼️ Images</h2><div class='gallery'>"
+        for file in images:
+            file_url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{file}"
+            html_content += f"<div class='card'><img src='{file_url}' alt='Image'><p>{file.split('/')[-1]}</p></div>"
+        html_content += "</div>"
+
+    # Videos
+    if videos:
+        html_content += "<h2>🎬 Videos</h2><div class='gallery'>"
+        for file in videos:
+            file_url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{file}"
+            html_content += f"<div class='card'><video controls><source src='{file_url}' type='video/mp4'></video><p>{file.split('/')[-1]}</p></div>"
+        html_content += "</div>"
+
+    # Audio
+    if audios:
+        html_content += "<h2>🎵 Background Music</h2><div class='audio-section'>"
+        for file in audios:
+            file_url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{file}"
+            html_content += f"<audio id='music-{file}' src='{file_url}'></audio>"
+            html_content += f"<button onclick=\"document.getElementById('music-{file}').play()\">▶ Play {file.split('/')[-1]}</button>"
+        html_content += "</div>"
+
+    # Other files
+    if others:
+        html_content += "<h2>📂 Other Files</h2><div class='gallery'>"
+        for file in others:
+            file_url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{file}"
+            html_content += f"<p><a href='{file_url}' class='file-link' target='_blank'>{file.split('/')[-1]}</a></p>"
+        html_content += "</div>"
+
+    html_content += "<footer>&copy; 2025 Neon Adventure Studios 🎮 All Rights Reserved</footer></body></html>"
+
+    return {
+        "statusCode": 200,
+        "headers": {"Content-Type": "text/html"},
+        "body": html_content
+    }
